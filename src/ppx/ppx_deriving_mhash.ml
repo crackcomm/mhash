@@ -8,10 +8,10 @@ module B = Ast_builder.Default
 let spf = Printf.sprintf
 
 let hasher_name_of_ty_name (ty_name:string) : string =
-  if ty_name = "t" then "hasher" else "hasher_" ^ ty_name
+  if ty_name = "t" then "mhasher" else "mhasher_" ^ ty_name
 
 (* name of hasher for the type parameter [v] *)
-let hasher_name_poly_var v = spf "_hash_poly_%s" v
+let hasher_name_poly_var v = spf "_mhash_poly_%s" v
 
 (* name of hasher function for this type *)
 let hasher_name_of_ty (ty:type_declaration) : string =
@@ -29,7 +29,7 @@ let rec hasher_name_of_lid (lid: Longident.t) : Longident.t =
 (* name of root hash function *)
 let hash_name_of_ty (ty:type_declaration) : string =
   let ty_name = ty.ptype_name.txt in
-  if ty_name = "t" then "hash" else "hash_" ^ ty_name
+  if ty_name = "t" then "mhash" else "mhash_" ^ ty_name
 
 let lid ~loc s = {loc;txt=Longident.Lident s}
 let lid_of_str {txt;loc} = lid ~loc txt
@@ -53,14 +53,14 @@ let mk_arrow ~loc args body =
 
 (* attribute to define hasher manually *)
 let attr_hasher =
-  Attribute.declare "hash.hasher"
+  Attribute.declare "mhash.mhasher"
     Attribute.Context.core_type
     Ast_pattern.(single_expr_payload __)
     (fun x -> x)
 
 (* attribute to skip hashing *)
 let attr_no_hash =
-  Attribute.declare "hash.nohash"
+  Attribute.declare "mhash.nohash"
     Attribute.Context.core_type
     Ast_pattern.(pstr nil)
     (fun () -> ())
@@ -113,12 +113,12 @@ let rec hash_expr_of_type (e:expression) ~(ty:core_type) : expression =
       end]
 
   | [%type: [%t? ty_arg0] list] ->
-    [%expr List.iter
+    [%expr Stdlib.List.iter
         (fun x -> [%e hash_expr_of_type [%expr x] ~ty:ty_arg0])
         [%e e]]
 
   | [%type: [%t? ty_arg0] array] ->
-    [%expr Array.iter
+    [%expr Stdlib.Array.iter
         (fun x -> [%e hash_expr_of_type [%expr x] ~ty:ty_arg0])
         [%e e]]
 
@@ -435,6 +435,6 @@ let intf_generator = Deriving.Generator.V2.make_noarg generate_intf
 
 
 let myderiver =
-  Deriving.add "hash"
+  Deriving.add "mhash"
     ~sig_type_decl:intf_generator
     ~str_type_decl:impl_generator
